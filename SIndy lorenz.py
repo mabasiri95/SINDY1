@@ -12,6 +12,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 import math
 
+from scipy.integrate import odeint
+
 
 ################ INPUTS ###############
 
@@ -20,8 +22,52 @@ x = 3 * np.exp(-2 * t)
 y = 0.5 * np.exp(t)
 X = np.stack((x, y), axis=-1) 
 
+def f(state, t):
+    x, y = state
+    return -2 * x, y
+
+state0 = [3.0, 0.5]
+
+time_steps = np.arange(0.0, 1.0, 0.01)
+
+x_train = odeint(f, state0, time_steps)
 
 
+
+plt.figure(figsize=(6, 4))
+plt.plot(x, y, label="signal", linewidth=4)
+plt.plot(x_train[:, 0], x_train[:, 1], "--", label="Dynamics", linewidth=3)
+plt.plot(state0[0], state0[1], "ko", label="Initial condition", markersize=8)
+plt.xlabel("x")
+plt.ylabel("y")
+plt.legend()
+plt.show()
+
+
+#######3 another Input ##########
+
+def f(state, t):
+    x, y = state
+    return -2 * x - 3 * y, -y - x
+
+state0 = [3.0, 0.5]
+
+time_steps = np.arange(0.0, 1.0, 0.01)
+
+x_train = odeint(f, state0, time_steps)
+
+
+
+plt.figure(figsize=(6, 4))
+plt.plot(x_train[:, 0], x_train[:, 1], "--", label="Dynamics", linewidth=3)
+plt.plot(state0[0], state0[1], "ko", label="Initial condition", markersize=8)
+plt.xlabel("x")
+plt.ylabel("y")
+plt.legend()
+plt.show()
+
+X = x_train
+t = time_steps
 
 ############## TRAINING THE MODEL ########
 
@@ -40,7 +86,7 @@ print("\nCandidate Library:\n",model.feature_library.get_feature_names())
 ### POLY
 model_1 = ps.SINDy(
     differentiation_method=ps.FiniteDifference(order=2),
-    feature_library=ps.PolynomialLibrary(degree=4),
+    feature_library=ps.PolynomialLibrary(degree=1),
     optimizer=ps.STLSQ(threshold=0.2), #fit_intercept=(True)
     feature_names=["x", "y"]
 )
@@ -54,9 +100,12 @@ print("\nCandidate Library:\n",model_1.feature_library.get_feature_names())
 
 
 def plot_simulation(model, x0, y0):
-    t_test = np.linspace(0, 3, 301)
-    x_test = x0 * np.exp(-2 * t_test)
-    y_test = y0 * np.exp(t_test)
+    
+    state0 = [x0,y0]
+    t_test = np.arange(0.0, 2.0, 0.01)
+    X_test = odeint(f, state0, t_test)
+    x_test = X_test[:,0]
+    y_test = X_test[:,1]
 
     sim = model.simulate([x0, y0], t=t_test)
 
